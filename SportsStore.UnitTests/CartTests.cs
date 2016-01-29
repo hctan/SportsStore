@@ -217,11 +217,54 @@ namespace SportsStore.UnitTests
             // Act - try to checkout
             ViewResult result = target.Checkout(cart, new ShippingDetails());
             // Assert - check that the order has been passed on to the processor
-            mock.Verify(m => m.ProcessOrder(It.IsAny<Cart>(), It.IsAny<ShippingDetails>()),Times.Once());
+            mock.Verify(m => m.ProcessOrder(It.IsAny<Cart>(), It.IsAny<ShippingDetails>()), Times.Once());
             // Assert - check that the method is returning the Completed view
             Assert.AreEqual("Completed", result.ViewName);
             // Assert - check that we are passing a valid model to the view
             Assert.AreEqual(true, result.ViewData.ModelState.IsValid);
+        }
+
+        [TestMethod]
+        public void Can_Save_Valid_Changes()
+        {
+            // Arrange - create mock repository
+            Mock<IProductRepository> mock = new Mock<IProductRepository>();
+
+            // Arrange - create the controller
+            AdminController target = new AdminController(mock.Object);
+
+            // Arrange - create a product
+            Product product = new Product { Name = "Test" };
+
+            // Act - try to save the product
+            ActionResult result = target.Edit(product);
+
+            // Assert - check that the repository was called
+            mock.Verify(m => m.SaveProduct(product));
+
+            // Assert - check the method result type
+            Assert.IsNotInstanceOfType(result, typeof(ViewResult));
+        }
+
+        [TestMethod]
+        public void Cannot_Save_Invalid_Changes()
+        {
+            // Arrange - create mock repository
+            Mock<IProductRepository> mock = new Mock<IProductRepository>();
+
+            // Arrange - create the controller
+            AdminController target = new AdminController(mock.Object);
+            // Arrange - create a product
+            Product product = new Product { Name = "Test" };
+            // Arrange - add an error to the model state
+            target.ModelState.AddModelError("error", "error");
+
+            // Act - try to save the product
+            ActionResult result = target.Edit(product);
+            // Assert - check that the repository was not called
+            mock.Verify(m => m.SaveProduct(It.IsAny<Product>()), Times.Never());
+            // Assert - check the method result type
+            Assert.IsInstanceOfType(result, typeof(ViewResult));
         }
     }
 }
